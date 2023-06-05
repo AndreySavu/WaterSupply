@@ -11,11 +11,18 @@ class Vertex(object):
     def get_longitude(self):
         return self.__longitude
     
+    def get_value(self):
+        return self.__value
+    
+    def set_latitude(self, lat):
+        self.__latitude = lat
+    
+    def set_longitude(self, long):
+        self.__longitude = long
+
     def set_value(self, value):
         self.__value = value
 
-    def get_value(self):
-        return self.__value
     
 class Edge(object):
 
@@ -61,7 +68,7 @@ class Graph(object):
                 return 1
         return 0
     
-    def add_vertex(self, name, latitude, longitude, value = 1):
+    def add_vertex(self, name, latitude, longitude, value):
         new_vertex = Vertex(latitude, longitude, value)
         if not self.vertex_exist(new_vertex):
             self.vertexes[name] = new_vertex
@@ -80,6 +87,9 @@ class Graph(object):
         for item in edges_to_delete:
             del self.edges[item]
         del self.vertexes[n]
+
+    def update_vertex(self, name, latitude, longitude, value):
+        self.vertexes.update({name : Vertex(latitude, longitude, value)})
 
     def get_all_vertexes(self):
         out = []
@@ -118,18 +128,8 @@ class Graph(object):
         return out
     
 gr = Graph()
-gr.add_vertex('lol1',33,44)
-gr.add_vertex('lol11',33,44)
-gr.add_vertex('lol2',35,44)
-gr.add_vertex('lol3',35,44)
-gr.add_vertex('lol4',36,44)
-gr.add_vertex('lol5',333,454)
-gr.add_vertex('lol6',39,434)
+gr.add_vertex('lol1',33,44, ('','','',''))
 
-gr.add_edge('e1', gr.get_vertex('lol1'), gr.get_vertex('lol2'))
-gr.add_edge('e2', gr.get_vertex('lol5'), gr.get_vertex('lol6'))
-gr.add_edge('e3', gr.get_vertex('lol5'), gr.get_vertex('lol6'))
-gr.add_edge('e4', gr.get_vertex('lol6'), gr.get_vertex('lol5'))
-gr.add_edge('e5', gr.get_vertex('lol2'), gr.get_vertex('lol4'))
+gr.update_vertex('lol1', 35, 30, ('1','2','3','4'))
+
 print(gr.get_all_vertexes())
-print(gr.get_all_edges())

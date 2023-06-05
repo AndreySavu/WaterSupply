@@ -2,11 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from PIL import ImageTk, Image
 from tkinter import filedialog
-#import os
-#import customtkinter
-#import tkintermapview
 import TKmv
-#from graphpy.graph import Graph
 import sqlite3
 import norm_graph as NG
 import math
@@ -72,6 +68,11 @@ class App:
                                  Material VARCHAR(20),\
                                  hasValve INTEGER,\
                                  opened INTEGER);")
+        cu.execute("CREATE TABLE map (\
+	                id INTEGER DEFAULT 1,\
+	                pos1 DOUBLE,\
+	                pos2 DOUBLE,\
+	                zoom INTEGER);")
         cx.commit()
         cx.close()
 
@@ -157,10 +158,7 @@ class App:
     def properties(self, object_name):
         width=self.root.winfo_width()*0.7
         
-        for i in range(len(self.props_name)):
-            self.props_name[i].place_forget()
-            self.props_value[i].place_forget()
-            self.props_value[i].delete(0,END)
+        self.close_properties()
 
         _name = object_name
         _object = self.gr.get_vertex(_name)
@@ -169,12 +167,12 @@ class App:
                 _type = 'Источник'
                 list_props_name = ['Высота объекта, м', 'Расход воды, м3/час', 
                                    'Максимальный расход, м3/час', 'Напор на выходе, м', ]
-            case 'Towe': #водонапорная башня
+            case 'Wate': #водонапорная башня
                 _type = 'Водонапорная башня'
                 list_props_name = ['Высота объекта, м', 'Расход воды, м3/час',
                                    'Высота воды, м', 'Объем запаса воды, м3', 
                                    'Напор, м']
-            case 'Rese': #контррезервуар
+            case 'Coun': #контррезервуар
                 _type = 'Контррезервуар'
                 list_props_name = ['Высота объекта, м', 'Расход воды, м3/час',
                                    'Высота воды, м', 'Напор, м']
@@ -194,50 +192,106 @@ class App:
         self.name.place( x=width+15, y=50)
         self.coordinates.place( x=width+15, y=70)
         
-        for i in range (len(_object[3])):          
+        for i in range (len(list_props_name)):          
+            self.props_name[i].config(text= list_props_name[i])
+            self.props_name[i].place(x=width+15, y=120+i*20)
+            self.props_value[i].insert(0, _object[3][i])
+            self.props_value[i].place(x=width+200, y=120+i*20) 
+
+        self.save_button.config(command= self.save_properties)
+        self.cancel_button.place(x= self.root.winfo_width()-300, y= self.root.winfo_height()-50)
+        self.save_button.place(x= self.root.winfo_width()-200, y= self.root.winfo_height()-50)
+    
+    def properties_line(self, object_name):
+        width=self.root.winfo_width()*0.7
+        
+        self.close_properties()
+
+        _name = object_name
+        _object = self.gr.get_edge(_name)
+        
+        _type = 'Участок'
+        list_props_name = ['Высота начала, м', 'Высота конца, м', #---------------- сделать связь с вершинами
+                            'Внутренний диаметр, м', 'Длина участка, м',
+                            'Расход воды, м3/час', 'Гидравлическое сопротивление, м/(т/ч)2',
+                            'Потери напора на участке, м', 'Скорость движения воды, м/с',
+                            'Коэффициент гидравл. трения(λ)', 'Утечка, м3/ч', 
+                            'Условно допустимое давление, м']
+        
+
+        self.type.config(text = _type)
+        self.name.config(text = _name)
+        self.coordinates.config(text = 'Конечные точки: ' + str(_object[1]) + " -- " + str(_object[2]))
+        self.type.place( x=width+15, y=30)
+        self.name.place( x=width+15, y=50)
+        self.coordinates.place( x=width+15, y=70)
+        
+        for i in range (len(list_props_name)):          
             self.props_name[i].config(text= list_props_name[i]) 
             self.props_value[i].insert(0, _object[3][i])
             self.props_name[i].place( x=width+15, y=120+i*20)  
-            self.props_value[i].place( x=width+60, y=120+i*20) 
+            self.props_value[i].place( x=width+200, y=120+i*20) 
+        last_posy = 120+len(list_props_name)*20
+        
+        self.props_name[11].config(text= 'Материал трубы')
+        self.props_name[11].place( x=width+15, y=last_posy+20) 
+        self.material.place(x=width+200, y=last_posy+20) 
+        self.props_name[12].config(text= 'Наличие запорной арматуры')
+        self.props_name[12].place( x=width+15, y=last_posy+40) 
+        self.has_valve.place(x=width+200, y=last_posy+40)
+        self.props_name[13].config(text= 'Процент открытия')
+        self.props_name[13].place( x=width+15, y=last_posy+60) 
+        self.opened_valve.place(x=width+200, y=last_posy+60)
+
+        self.save_button.config(command= self.save_properties_line)
+        self.cancel_button.place(x= self.root.winfo_width()-300, y= self.root.winfo_height()-50)
+        self.save_button.place(x= self.root.winfo_width()-200, y= self.root.winfo_height()-50)
+
+    def save_properties(self):
+        name = self.name.cget("text")
+        coords = self.coordinates.cget("text")[12:].split(' -- ')
+        value = []
+        match name[:4]:
+            case 'Sour': 
+                n_values = 4
+            case 'Wate': 
+                n_values = 5
+            case 'Coun': 
+                n_values = 4
+            case 'Conn': 
+                n_values = 4
+            case 'Cons': 
+                n_values = 4
+
+        for i in range(n_values):
+            value.append(self.props_value[i].get())
+        self.gr.update_vertex(name,coords[0],coords[1],tuple(value))
+        print(self.gr.get_all_vertexes())
     
-    def properties_line(self, object_name):
-            width=self.root.winfo_width()*0.7
-            
-            for i in range(len(self.props_name)):
-                self.props_name[i].place_forget()
-                self.props_value[i].place_forget()
-                self.props_value[i].delete(0,END)
+    def save_properties_line(self):
+        name = self.name.cget("text")
+        points = self.coordinates.cget("text")[16:].split(' -- ')
+        value = []
+        for i in range (11):
+            value.append(self.props_value[i].get())
+        value.append([self.material.get(), self.has_valve.get(), self.opened_valve.get()])
+        self.gr.update_edge(name,points[0],points[1],tuple(value))
+        print(self.gr.get_all_edges())
 
-            _name = object_name
-            _object = self.gr.get_edge(_name)
-            
-            _type = 'Участок'
-            list_props_name = ['Высота начала, м', 'Высота конца, м',
-                               'Внутренний диаметр, м', 'Длина участка, м',
-                               'Расход воды, м3/час', 'Гидравлическое сопротивление, м/(т/ч)2',
-                               'Потери напора на участке, м', 'Скорость движения воды, м/с',
-                               'Коэффициент гидравл. трения(λ)', 'Утечка, м3/ч', 
-                               'Условно допустимое давление, м']
-            
-
-            self.type.config(text = _type)
-            self.name.config(text = _name)
-            self.coordinates.config(text = 'Координаты: ' + str(_object[1]) + " -- " + str(_object[2]))
-            self.type.place( x=width+15, y=30)
-            self.name.place( x=width+15, y=50)
-            self.coordinates.place( x=width+15, y=70)
-            
-            for i in range (len(_object[3])):          
-                self.props_name[i].config(text= list_props_name[i]) 
-                self.props_value[i].insert(0, _object[3][i])
-                self.props_name[i].place( x=width+15, y=120+i*20)  
-                self.props_value[i].place( x=width+60, y=120+i*20) 
-            
-            self.props_name[11].config(text= 'Материал трубы')#combo box
-            self.props_name[12].config(text= 'Наличие запорной арматуры')#combo box
-            self.props_name[13].config(text= 'Процент открытия') #entry
-
-
+    def close_properties(self):
+        self.type.place_forget()
+        self.name.place_forget()
+        self.coordinates.place_forget()
+        for item in self.props_name:
+            item.place_forget()
+        for item in self.props_value:
+            item.place_forget()
+            item.delete(0,END)
+        self.save_button.place_forget()
+        self.cancel_button.place_forget()
+        self.has_valve.place_forget() 
+        self.material.place_forget() 
+        self.opened_valve.place_forget()    
         
     def delete_line(self, coords):
         for poly in self.map_widget.canvas_polygon_list:
@@ -278,8 +332,10 @@ class App:
                     
                     current_amount = len(self.gr.get_all_edges())
                     self.gr.add_edge(self.firstpoint.data + self.secondpoint.data,
-                                        self.gr.get_vertex(self.firstpoint.data),
-                                        self.gr.get_vertex(self.secondpoint.data))
+                                        #self.gr.get_vertex(self.firstpoint.data),
+                                        #self.gr.get_vertex(self.secondpoint.data)
+                                        self.firstpoint.data,
+                                        self.secondpoint.data, ('', '', '', '', '', '', '', '', '', '', '', '', '', ''))
                     
                     if current_amount != len(self.gr.get_all_edges()):
                         self.map_widget.set_polygon(buff, data=(self.firstpoint.data, self.secondpoint.data))
@@ -324,24 +380,32 @@ class App:
                                 command=self.add_line,
                                 pass_coords=True 
                                 )
-        self.map_widget.add_right_click_menu_command_markers(label="Свойства", 
-                                command=self.properties,
-                                pass_coords=False 
-                                )
         self.map_widget.add_right_click_menu_command_markers(label="Удалить объект", 
                                 command=self.delete_marker,
                                 pass_coords=True 
                                 )
-        self.map_widget.add_right_click_menu_command_lines(label="Удалить трубу", 
+        self.map_widget.add_right_click_menu_command_markers(label="Свойства", 
+                                command=self.properties,
+                                pass_coords=False 
+                                )
+        self.map_widget.add_right_click_menu_command_lines(label="Удалить участок", 
                                 command=self.delete_line,
                                 pass_coords=True 
+                                )
+        self.map_widget.add_right_click_menu_command_lines(label="Свойства", 
+                                command=self.properties_line,
+                                pass_coords=False 
                                 )
 
         
         self.map_widget.save_state_to_file
     
     def load(self):
-        cx = sqlite3.connect("schemas/water.db")
+        self.path_to_file = filedialog.askopenfilename(defaultextension=".txt",
+                filetypes=[("database",".db")],
+                initialdir="./schemas")
+        
+        cx = sqlite3.connect(self.path_to_file)
         cu = cx.cursor()
         cu.execute("SELECT * FROM map;")
         out = cu.fetchall()
@@ -420,7 +484,7 @@ class App:
 
     def __init__(self):
 
-
+        path_to_file = ''
         #граф-----------------------------------
         self.gr = NG.Graph()
         self.firstpoint = None
@@ -432,11 +496,13 @@ class App:
         self.type = ttk.Label()
         self.name = ttk.Label()
         self.coordinates = ttk.Label()
-        self.props_name = [ttk.Label() for i in range(5)]
-        self.props_value = [ttk.Entry(width=40) for i in range(5)]
-        self.save_button = ttk.Button(text='Сохранить',)
-      
-              
+        self.props_name = [ttk.Label() for i in range(14)]
+        self.props_value = [ttk.Entry(width=25) for i in range(11)] 
+        self.save_button = ttk.Button(text='Сохранить')
+        self.cancel_button = ttk.Button(text='Отмена', command= self.close_properties)
+        self.has_valve = ttk.Combobox(values=['нет','да']) #наличие запороной арматуры
+        self.material = ttk.Combobox(values=['металл','пластик']) #материал трубы участка
+        self.opened_valve = ttk.Entry(width=15) #процент открытия арматуры    
         #верхний бар------------------------------------------------------
         self.mainmenu = Menu(self.root) 
         self.root.config(menu=self.mainmenu) 
