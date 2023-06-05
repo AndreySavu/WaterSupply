@@ -284,7 +284,7 @@ class TkinterMapView(tkinter.Frame):
 
                 if abs(math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2) - 
                     (math.sqrt((a[0] - c[0])**2 + (a[1] - c[1])**2) + math.sqrt((b[0] - c[0])**2 + (b[1] - c[1])**2))) < 0.4:
-                    object_name = poly.data[1] + poly.data[2]
+                    object_name = poly.data[0] + poly.data[1]
                     for command in self.right_click_menu_commands_lines:
                         if command["pass_coords"]:
                             m.add_command(label=command["label"], command=partial(command["command"], coordinate_mouse_pos))

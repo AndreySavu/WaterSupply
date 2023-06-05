@@ -266,6 +266,9 @@ class App:
         for i in range(n_values):
             value.append(self.props_value[i].get())
         self.gr.update_vertex(name,coords[0],coords[1],tuple(value))
+        #if value[0]!='':
+        #    for item in self.gr.get_all_vertexes():
+        #        if item
         print(self.gr.get_all_vertexes())
     
     def save_properties_line(self):

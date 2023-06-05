@@ -26,10 +26,9 @@ class Vertex(object):
     
 class Edge(object):
 
-    def __init__(self,  source, destination, label=None, value=1):
+    def __init__(self,  source, destination, value):
         self.__source = source
         self.__destination = destination
-        self.__label = label
         self.__value = value
 
     def set_source(self, source):
@@ -43,12 +42,6 @@ class Edge(object):
 
     def get_destination(self):
         return self.__destination
-
-    def set_label(self, label):
-        self.__label = label
-
-    def get_label(self):
-        return self.__label
 
     def set_value(self, value):
         self.__value = value
@@ -104,26 +97,27 @@ class Graph(object):
                 return 1
         return 0
 
-    def add_edge(self, name, source, destination, label = None, value = None):
-        new_edge = Edge(source, destination, label, value)
+    def add_edge(self, name, source, destination, value):
+        new_edge = Edge(source, destination, value)
         if not self.edge_exists(new_edge):
             self.edges[name] = new_edge
 
     def get_edge(self, name):
         return (name, self.edges[name].get_source(),
                       self.edges[name].get_destination(), 
-                      self.edges[name].get_label(), 
                       self.edges[name].get_value())
     
     def remove_edge(self, name):
         del self.edges[name]
+
+    def update_edge(self, name, start, end, value):
+        self.edges.update({name : Edge(start, end, value)})
 
     def get_all_edges(self):
         out = []
         for name in self.edges:
             out.append((name, self.edges[name].get_source(), 
                         self.edges[name].get_destination(), 
-                        self.edges[name].get_label(),
                         self.edges[name].get_value()))
         return out
     
