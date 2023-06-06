@@ -83,6 +83,16 @@ class Graph(object):
 
     def update_vertex(self, name, latitude, longitude, value):
         self.vertexes.update({name : Vertex(latitude, longitude, value)})
+        
+        if value[0]!=0:
+            for item in self.get_all_edges():
+                buff = list(item[3])
+                if name == item[1] and buff[0] != value[0]:
+                    buff[0] = value[0]
+                    self.update_edge(item[0],item[1],item[2],tuple(buff)) 
+                if name == item[2] and buff[0] != value[0]:
+                    buff[1] = value[0]
+                    self.update_edge(item[0],item[1],item[2],tuple(buff))     
 
     def get_all_vertexes(self):
         out = []
@@ -112,7 +122,20 @@ class Graph(object):
 
     def update_edge(self, name, start, end, value):
         self.edges.update({name : Edge(start, end, value)})
-
+        if value[0]!=0:
+            for item in self.get_all_vertexes():
+                buff = list(item[3])
+                if item[0] == start and buff[0] != value[0]:
+                    buff[0] = value[0]
+                    self.update_vertex(item[0],item[1],item[2],tuple(buff))
+        if value[1]!=0:
+            for item in self.get_all_vertexes():
+                buff = list(item[3])
+                if item[0]==end and buff[0] != value[1]:
+                    buff = list(item[3])
+                    buff[0] = value[1]
+                    self.update_vertex(item[0],item[1],item[2],tuple(buff))
+    
     def get_all_edges(self):
         out = []
         for name in self.edges:
@@ -121,6 +144,9 @@ class Graph(object):
                         self.edges[name].get_value()))
         return out
     
+    def clear_graph(self):
+        self.vertexes.clear()
+        self.edges.clear()
 gr = Graph()
 gr.add_vertex('lol1',33,44, ('','','',''))
 

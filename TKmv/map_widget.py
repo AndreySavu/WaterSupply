@@ -208,16 +208,17 @@ class TkinterMapView(tkinter.Frame):
                                    style=tkinter.ARC, tag="corner", width=10, outline=self.bg_color, start=0)
 
     def update_dimensions(self, event):
+        pass
         # only redraw if dimensions changed (for performance)
-        if self.width != event[0]*0.7 or self.height != event[1]:
-            self.width = event[0]*0.7
-            self.height = event[1]
-            print(self.width,'-----',self.height)
-            self.min_zoom = math.ceil(math.log2(math.ceil(self.width*0.7 / self.tile_size)))
+        #if self.width != event[0]*0.7 or self.height != event[1]:
+         #   self.width = event[0]*0.7
+          #  self.height = event[1]
+           # print(self.width,'-----',self.height)
+            #self.min_zoom = math.ceil(math.log2(math.ceil(self.width*0.7 / self.tile_size)))
 
-            self.set_zoom(self.zoom)  # call zoom to set the position vertices right
-            self.draw_move()  # call move to draw new tiles or delete tiles
-            self.draw_rounded_corners()
+        #    self.set_zoom(self.zoom)  # call zoom to set the position vertices right
+         #   self.draw_move()  # call move to draw new tiles or delete tiles
+          #  self.draw_rounded_corners()
 
     def add_right_click_menu_command(self, label: str, command: Callable, pass_coords: bool = False) -> None:
         self.right_click_menu_commands.append({"label": label, "command": command, "pass_coords": pass_coords})
