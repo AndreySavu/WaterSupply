@@ -72,11 +72,9 @@ class Graph(object):
     def remove_vertex(self, n):
         edges_to_delete = []
         for item in self.edges:
-            print(self.edges[item].get_source())
-            if self.edges[item].get_source() == self.get_vertex(n) or\
-                self.edges[item].get_destination() == self.get_vertex(n):
+            if self.edges[item].get_source() == self.get_vertex(n)[0] or\
+                self.edges[item].get_destination() == self.get_vertex(n)[0]:
                 edges_to_delete.append(item)
-                print('edge deleted')
         for item in edges_to_delete:
             del self.edges[item]
         del self.vertexes[n]
