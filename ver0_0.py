@@ -168,7 +168,7 @@ class App:
                     dat = "Edge" + str(self.last_N_of_object[5] + 1)
                     self.gr.add_edge(dat,
                                         self.firstpoint.data,
-                                        self.secondpoint.data, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'металл', 0, 0))
+                                        self.secondpoint.data, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'стальные неновые', 0, 0))
                     
                     if current_amount != len(self.gr.get_all_edges()):
                         self.map_widget.set_polygon(buff, data=dat)
@@ -551,7 +551,6 @@ class App:
             cx.commit()
             cx.close()
 
-    
     def save_as(self):
         self.path_to_file = filedialog.asksaveasfilename(defaultextension=".txt",
                 filetypes=[("database",".db")],
@@ -579,10 +578,11 @@ class App:
         self.props_value = [ttk.Entry(width=25) for i in range(11)] 
         self.save_button = ttk.Button(text='Сохранить')
         self.cancel_button = ttk.Button(text='Отмена', command= self.close_properties)
+        self.material_list = ['стальные неновые','стальные новые', 'чугунные неновые', 'чугунные новые',
+                               'асбестоцементные', 'полиэтиленовые', 'с цемент.-песч. покрытием']
+        self.material = ttk.Combobox(values=self.material_list, state= "readonly", width=22) #материал трубы участка
         self.has_valve_list = ['нет','да']
-        self.has_valve = ttk.Combobox(values=self.has_valve_list, state= "readonly") #наличие запороной арматуры
-        self.material_list = ['металл','пластик']
-        self.material = ttk.Combobox(values=self.material_list, state= "readonly") #материал трубы участка
+        self.has_valve = ttk.Combobox(values=self.has_valve_list, state= "readonly", width=15) #наличие запороной арматуры
         self.opened_valve = ttk.Entry(width=15) #процент открытия арматуры    
         #верхний бар------------------------------------------------------
         self.mainmenu = Menu(self.root) 
