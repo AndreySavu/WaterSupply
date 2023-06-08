@@ -5,6 +5,8 @@ import TKmv
 import sqlite3
 import norm_graph as NG
 import math
+import pandas as pd
+import openpyxl
 
 class App:
 
@@ -85,6 +87,21 @@ class App:
         cu.execute("DELETE FROM map;")
         cx.commit()
         cx.close()
+
+    def clear_xlsx(self, name):
+        list = ['Sources', 'WaterTowers', 'CounterReservoirs', 'Connectors', 'Consumers', 'Pipes']
+        try:
+            wb = openpyxl.load_workbook(name)
+            for sheet in list:
+                pfd = wb[sheet]
+                wb.remove(pfd)
+            wb.save(name)
+        except:
+
+            new_wb = openpyxl.Workbook()
+            for sheet in list:
+                wb.create_sheet(sheet)
+            new_wb.save(name)
 
     def add_marker_source(self, coords):
         adress = str(TKmv.convert_coordinates_to_address(coords[0], coords[1]).street) + \
@@ -210,35 +227,27 @@ class App:
                    self.gr.remove_edge(poly.data)
                    self.map_widget.delete(poly)
 
-    def properties(self, object_name):
+    def properties(self, _name):
         width=self.root.winfo_width()*0.7
         
         self.close_properties()
-
-        _name = object_name
         _object = self.gr.get_vertex(_name)
         match _name[:4]:
             case 'Sour': #источник водоснабжения
                 _type = 'Источник'
-                list_props_name = ['Высота объекта, м', 'Расход воды, м3/час', 
-                                   'Максимальный расход, м3/час', 'Напор на выходе, м', ]
+                list_props_name = self.list_props_source
             case 'Wate': #водонапорная башня
                 _type = 'Водонапорная башня'
-                list_props_name = ['Высота объекта, м', 'Расход воды, м3/час',
-                                   'Высота воды, м', 'Объем запаса воды, м3', 
-                                   'Напор, м']
+                list_props_name = self.list_props_watertower
             case 'Coun': #контррезервуар
                 _type = 'Контррезервуар'
-                list_props_name = ['Высота объекта, м', 'Расход воды, м3/час',
-                                   'Высота воды, м', 'Напор, м']
+                list_props_name = self.list_props_counterreservior
             case 'Conn':
                 _type = 'Узер(разветвление)'
-                list_props_name = ['Высота объекта, м', 'Расход воды, м3/час',
-                                   'Напор, м', 'Давление воды, м']
+                list_props_name = self.list_props_connector
             case 'Cons':
                 _type = 'Потребитель'
-                list_props_name = ['Высота объекта, м', 'Расчетный расход воды, м3/час', 
-                                   'Минимальный напор, м', 'Напор, м']
+                list_props_name = self.list_props_consumer
 
         self.type.config(text = _type)
         self.name.config(text = _name)
@@ -257,23 +266,15 @@ class App:
         self.cancel_button.place(x= self.root.winfo_width()-300, y= self.root.winfo_height()-50)
         self.save_button.place(x= self.root.winfo_width()-200, y= self.root.winfo_height()-50)
     
-    def properties_line(self, object_name):
+    def properties_line(self, _name):
         width=self.root.winfo_width()*0.7
         
         self.close_properties()
-
-        _name = object_name
         _object = self.gr.get_edge(_name)
         
         _type = 'Участок'
-        list_props_name = ['Высота начала, м', 'Высота конца, м', 
-                            'Внутренний диаметр, м', 'Длина участка, м',
-                            'Расход воды, м3/час', 'Гидравлическое сопротивление, м/(т/ч)2',
-                            'Потери напора на участке, м', 'Скорость движения воды, м/с',
-                            'Коэффициент гидравл. трения(λ)', 'Утечка, м3/ч', 
-                            'Условно допустимое давление, м']
+        list_props_name = self.list_props_pipe
         
-
         self.type.config(text = _type)
         self.name.config(text = _name)
         self.coordinates.config(text = 'Конечные точки: ' + str(_object[1]) + " -- " + str(_object[2]))
@@ -421,9 +422,12 @@ class App:
     def load(self):
         self.last_N_of_object = [0, 0, 0, 0, 0, 0]
         self.path_to_file = filedialog.askopenfilename(defaultextension=".txt",
-                    filetypes=[("database",".db")],
+                    filetypes=[("database",".db"), ("Excel",".xlsx")],
                     initialdir="./schemas")
-        if self.path_to_file != '':
+        
+
+        
+        if self.path_to_file[-3:] == '.db':
             cx = sqlite3.connect(self.path_to_file)
             cu = cx.cursor()
             
@@ -501,9 +505,25 @@ class App:
         
     def save(self):
         self.close_properties()
-        if self.path_to_file =='':
-            self.save_as()
-        else:
+        
+        if self.path_to_file[-5:] == '.xlsx':
+            self.clear_xlsx(self.path_to_file)
+            df1 = self.make_dataframe('Source')
+            df2 = self.make_dataframe('WaterTower')
+            df3 = self.make_dataframe('CounterReservoir')
+            df4 = self.make_dataframe('Connector')
+            df5 = self.make_dataframe('Consumer')
+            df6 = self.make_dataframe('Pipe')
+            
+            with pd.ExcelWriter(self.path_to_file) as writer:
+                df1.to_excel(writer,self.path_to_file, sheet_name='Sources')
+                df2.to_excel(writer, self.path_to_file, sheet_name='WaterTowers')
+                df3.to_excel(writer, self.path_to_file, sheet_name='CounterReservoirs')
+                df4.to_excel(writer, self.path_to_file, sheet_name='Connectors')
+                df5.to_excel(writer, self.path_to_file, sheet_name='Consumers')
+                df6.to_excel(writer, self.path_to_file, sheet_name='Pipes')
+            writer.save()
+        if self.path_to_file[-3:] == '.db':
             try:
                 self.clear_db(self.path_to_file)
             except:
@@ -516,53 +536,121 @@ class App:
 
             for item in self.gr.get_all_vertexes():
                 if item[0][:4] == "Sour":
-                    print("src")
                     cu.execute("INSERT OR REPLACE INTO sources (name, coord1, coord2, H, G, Gmax, P) VALUES (?, ?, ?, ?, ?, ?, ?);", 
-                            (item[0], float(item[1]), float(item[2]), float(item[3][0]), 
-                                        float(item[3][1]), float(item[3][2]), float(item[3][3])))     
+                            (item[0], item[1], item[2], 
+                             item[3][0], item[3][1], item[3][2], item[3][3]))     
                 if item[0][:4] == "Wate":
-                    print("twr")
                     cu.execute("INSERT OR REPLACE INTO towers (name, coord1, coord2, H, G, Hwater, V, P) VALUES (?, ?, ?, ?, ?, ?, ?, ?);", 
-                            (item[0], float(item[1]), float(item[2]), float(item[3][0]), 
-                                        float(item[3][1]), float(item[3][2]), float(item[3][3]), float(item[3][4])))  
+                            (item[0], item[1], item[2], 
+                             item[3][0], item[3][1], item[3][2], item[3][3], item[3][4]))  
                 if item[0][:4] == "Coun":
-                    print("res")
                     cu.execute("INSERT OR REPLACE INTO reservoirs (name, coord1, coord2, H, G, Hwater, P) VALUES (?, ?, ?, ?, ?, ?, ?);", 
-                            (item[0], float(item[1]), float(item[2]), float(item[3][0]), 
-                                        float(item[3][1]), float(item[3][2]), float(item[3][3])))   
+                            (item[0], item[1], item[2], 
+                             item[3][0], item[3][1], item[3][2], item[3][3]))    
                 if item[0][:4] == "Conn":
-                    print("cnn")
-                    cu.execute("INSERT OR REPLACE INTO connectors (name, coord1, coord2, H, G, P, Pressure) VALUES (?, ?, ?, ?, ?, ?, ?);", 
-                            (item[0], float(item[1]), float(item[2]), float(item[3][0]), 
-                                        float(item[3][1]), float(item[3][2]), float(item[3][3])))  
+                      cu.execute("INSERT OR REPLACE INTO connectors (name, coord1, coord2, H, G, P, Pressure) VALUES (?, ?, ?, ?, ?, ?, ?);", 
+                            (item[0], item[1], item[2], 
+                             item[3][0], item[3][1], item[3][2], item[3][3]))  
                 if item[0][:4] == "Cons":
-                    print("cns")
                     cu.execute("INSERT OR REPLACE INTO consumers (name, coord1, coord2, H, G, Pmin, P) VALUES (?, ?, ?, ?, ?, ?, ?);", 
-                            (item[0], float(item[1]), float(item[2]), float(item[3][0]), 
-                                        float(item[3][1]), float(item[3][2]), float(item[3][3])))  
+                            (item[0], item[1], item[2], 
+                             item[3][0], item[3][1], item[3][2], item[3][3]))  
             for item in self.gr.get_all_edges():
-                print("pip")
                 cu.execute("INSERT OR REPLACE INTO pipes (name, name1, name2, H1, H2, D, Len, G, R, Glost, Speed, Lambda, Lost,\
                         AcceptPres, Material, hasValve, opened) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
-                        (item[0], item[1], item[2], float(item[3][0]), float(item[3][1]), float(item[3][2]), float(item[3][3]), 
-                                                    float(item[3][4]), float(item[3][5]), float(item[3][6]), float(item[3][7]), 
-                                                    float(item[3][8]), float(item[3][9]), float(item[3][10]), item[3][11], 
-                                                    float(item[3][12]), float(item[3][13])))
+                        (item[0], item[1], item[2], item[3][0], item[3][1], item[3][2], item[3][3], 
+                                                    item[3][4], item[3][5], item[3][6], item[3][7], 
+                                                    item[3][8], item[3][9], item[3][10], item[3][11], 
+                                                    item[3][12], item[3][13]))
             cx.commit()
             cx.close()
+        else:
+            self.save_as()    
 
     def save_as(self):
         self.path_to_file = filedialog.asksaveasfilename(defaultextension=".txt",
-                filetypes=[("database",".db")],
+                filetypes=[("database",".db"), ("Excel",".xlsx")],
                 initialdir="./schemas")
-        if self.path_to_file != '':
+        if self.path_to_file[-3:] == '.db':
             self.create_db(self.path_to_file)
             self.save()
+        if self.path_to_file[-5:] == '.xlsx':
+            self.save()
 
+    def make_dataframe(self, _type):
+        if _type == 'Pipe':
+            props_list = ['Название','Начало','Конец'] + self.list_props_pipe + \
+                        ['Материал трубы', 'Наличие запорной арматуры', 'Процент открытия']
+            
+            df = pd.DataFrame({item:[] for item in props_list})
+            for item in self.gr.get_all_edges():
+                df.loc[ len(df.index )] = [item[0], item[1], item[2]] + [i for i in item[3]]    
+            return df
+        else:
+            props_list = ['Название','Широта','Долгота']
+            if _type == 'Source':
+                props_list += self.list_props_source     
+            if _type == 'WaterTower':
+                props_list += self.list_props_watertower    
+            if _type == 'CounterReservoir':
+                props_list += self.list_props_counterreservior   
+            if _type == 'Connector':
+                props_list += self.list_props_connector    
+            if _type == 'Consumer':
+                props_list += self.list_props_consumer  
+            _type = _type[:4]   
+            df = pd.DataFrame({item:[] for item in props_list}) 
+            for item in self.gr.get_all_vertexes():
+                if item[0][:4] == _type:
+                    df.loc[ len(df.index )] = [item[0], item[1], item[2]] + [i for i in item[3]]
+            return df
+
+    def show_group_of_objects(self, _type):
+        window = Tk()
+        window.title(_type)
+        window.geometry("1200x500")
+        df = self.make_dataframe(_type)
+        
+        columns = ['#'+ str(i+1) for i in range (len(df.columns))]
+        tree = ttk.Treeview(window, show="headings", columns=columns)
+        for i in range (len(columns)):
+            tree.heading(columns[i], text=df.columns[i])
+            tree.column(columns[i], width=int(1200/len(columns)))
+
+        ysb = ttk.Scrollbar(window, orient= VERTICAL, command=tree.yview)
+        tree.configure(yscroll=ysb.set)
+
+        for item in df.values:
+            tree.insert("", END, values=tuple(item))
+        #self.tree.bind("<>", self.print_selection)
+        tree.pack(fill=BOTH, expand=True)
+
+
+    def load_xlsx(self):
+        pass
+    def save_xlsx(self):
+        pass
     def __init__(self):
         #source, watertower, counterreservoir, consumer, connector, pipe
         self.last_N_of_object = [0, 0, 0, 0, 0, 0]
         self.path_to_file = ''
+
+        self.list_props_source = ['Высота объекта, м', 'Расход воды, м3/час', 
+                                   'Максимальный расход, м3/час', 'Напор на выходе, м', ]
+        self.list_props_watertower = ['Высота объекта, м', 'Расход воды, м3/час',
+                            'Высота воды, м', 'Объем запаса воды, м3', 'Напор, м']
+        self.list_props_counterreservior = ['Высота объекта, м', 'Расход воды, м3/час',
+                            'Высота воды, м', 'Напор, м']
+        self.list_props_connector = ['Высота объекта, м', 'Расход воды, м3/час',
+                            'Напор, м', 'Давление воды, м']
+        self.list_props_consumer = ['Высота объекта, м', 'Расчетный расход воды, м3/час', 
+                            'Минимальный напор, м', 'Напор, м']
+        self.list_props_pipe = ['Высота начала, м', 'Высота конца, м', 
+                                'Внутренний диаметр, м', 'Длина участка, м',
+                                'Расход воды, м3/час', 'Гидравлическое сопротивление, м/(т/ч)2',
+                                'Потери напора на участке, м', 'Скорость движения воды, м/с',
+                                'Коэффициент гидравл. трения(λ)', 'Утечка, м3/ч', 
+                                'Условно допустимое давление, м']
         #граф-----------------------------------
         self.gr = NG.Graph()
         self.firstpoint = None
@@ -590,25 +678,47 @@ class App:
      
         #работа с файлами
         self.filemenu = Menu(self.mainmenu, tearoff=0)
-        self.filemenu.add_command(label="Создать новую схему(с картой)", 
-                 command=self.open_new_map)
+        self.filemenu.add_command(label="Создать новую схему(с картой)",
+                                  command=self.open_new_map)
         self.filemenu.add_command(label="Открыть...",
-                  command=self.load)
+                                  command=self.load)
         self.filemenu.add_command(label="Сохранить...",
-                  command=self.save)
-        self.filemenu.add_command(label="Сохранить как...",
-                  command=self.save_as)
-        self.filemenu.add_command(label="Выход")
+                                  command=self.save)
+        self.filemenu.add_command(label="Сохранить как...", 
+                                  command=self.save_as)
+        self.filemenu.add_command(label="Выход",
+                                  command=self.root.destroy)
         #работа с объектами
         self.addObjectmenu = Menu(self.mainmenu, tearoff=0)
         self.addObjectmenu.add_command(label="Добавить объект")#, command=self.addMarker)
-        self.addObjectmenu.add_command(label="Проложить ТРУБУ)")
+        self.addObjectmenu.add_command(label="Проложить ТРУБУ")
+        #расчеты
+        self.calculationsmenu = Menu(self.mainmenu, tearoff=0)
+        self.calculationsmenu.add_command(label="Коммутационная задача")
+        self.calculationsmenu.add_command(label="Поверочный расчет")
+        #вывод сводных таблиц по типам объектов
+        self.tablesmenu = Menu(self.mainmenu, tearoff=0)
+        self.tablesmenu.add_command(label="По источникам", 
+                                    command=lambda: self.show_group_of_objects('Source'))
+        self.tablesmenu.add_command(label="По водонапоным башням", 
+                                    command=lambda: self.show_group_of_objects('WaterTower'))
+        self.tablesmenu.add_command(label="По контррезервуарам", 
+                                    command=lambda: self.show_group_of_objects('CounterReservoir'))
+        self.tablesmenu.add_command(label="По узлам (разветвлениям)", 
+                                    command=lambda: self.show_group_of_objects('Connector'))
+        self.tablesmenu.add_command(label="По потребителям", 
+                                    command=lambda: self.show_group_of_objects('Consumer'))
+        self.tablesmenu.add_command(label="По участкам", 
+                                    command=lambda: self.show_group_of_objects('Pipe'))
+
         #справка
         self.helpmenu = Menu(self.mainmenu, tearoff=0)
         self.helpmenu.add_command(label="Помощь")
         self.helpmenu.add_command(label="О программе")
 
         self.mainmenu.add_cascade(label="Файл", menu=self.filemenu)
+        self.mainmenu.add_cascade(label="Расчеты", menu=self.calculationsmenu)
+        self.mainmenu.add_cascade(label="Сводные таблицы", menu=self.tablesmenu)
         self.mainmenu.add_cascade(label="Добавить объект", menu=self.addObjectmenu)
         self.mainmenu.add_cascade(label="Справка", menu=self.helpmenu)
         
