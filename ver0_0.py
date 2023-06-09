@@ -7,6 +7,7 @@ import norm_graph as NG
 import math
 import pandas as pd
 import openpyxl
+import xlsxwriter
 
 class App:
 
@@ -97,10 +98,9 @@ class App:
                 wb.remove(pfd)
             wb.save(name)
         except:
-
             new_wb = openpyxl.Workbook()
             for sheet in list:
-                wb.create_sheet(sheet)
+                new_wb.create_sheet(sheet)
             new_wb.save(name)
 
     def add_marker_source(self, coords):
@@ -425,88 +425,92 @@ class App:
                     filetypes=[("database",".db"), ("Excel",".xlsx")],
                     initialdir="./schemas")
         
-
-        
         if self.path_to_file[-3:] == '.db':
             cx = sqlite3.connect(self.path_to_file)
             cu = cx.cursor()
-            
             cu.execute("SELECT * FROM map;")
-            out = cu.fetchall()
-            self.open_new_map((out[0][1], out[0][2]), out[0][3], 1)
-            
+            out0 = cu.fetchall()
             cu.execute("SELECT * FROM sources;")
-            out = cu.fetchall()
-            for row in out:
-                self.map_widget.set_marker(row[1], row[2], text = "ИСТ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
-                                                        " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
-                                                        icon="icons/source.png", data = row[0])
-                self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
-            if len(out)!=0:
-                self.last_N_of_object[0]=int(row[0][6:])
-            
+            out1 = cu.fetchall()
             cu.execute("SELECT * FROM towers;")
-            out = cu.fetchall()
-            for row in out:
-                self.map_widget.set_marker(row[1], row[2], text = "ВНБ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
-                                                        " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
-                                                        icon="icons/tower.png", data = row[0])
-                self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6], row[7]))
-            if len(out)!=0:    
-                self.last_N_of_object[1]=int(row[0][10:])
-            
+            out2 = cu.fetchall()
             cu.execute("SELECT * FROM reservoirs;")
-            out = cu.fetchall()
-            for row in out:
-                self.map_widget.set_marker(row[1], row[2], text = "КР " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
-                                                        " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
-                                                        icon="icons/reservoir.png", data = row[0])
-                self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
-            if len(out)!=0:
-                self.last_N_of_object[2]=int(row[0][16:])
-            
+            out3 = cu.fetchall()
             cu.execute("SELECT * FROM connectors;")
-            out = cu.fetchall()
-            for row in out:
-                self.map_widget.set_marker(row[1], row[2], text = "РЗВ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
-                                                        " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
-                                                        icon="icons/connector.png", data = row[0])
-                self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
-            if len(out)!=0:
-                self.last_N_of_object[3]=int(row[0][9:])
-
+            out4 = cu.fetchall()
             cu.execute("SELECT * FROM consumers;")
-            out = cu.fetchall()
-            for row in out:
-                self.map_widget.set_marker(row[1], row[2], text = "ПТР " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
-                                                        " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
-                                                        icon="icons/consumer.png", data = row[0])
-                self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
-            if len(out)!=0:
-                self.last_N_of_object[4]=int(row[0][8:])
-            
+            out5 = cu.fetchall()
             cu.execute("SELECT * FROM pipes;")
-            out = cu.fetchall()
-            for row in out:
-                point1 = self.gr.get_vertex(row[1])
-                point2 = self.gr.get_vertex(row[2])
-                #получаем координаты концов участка
-                buff = [(point1[1], point1[2]), (point2[1], point2[2])]
-                self.map_widget.set_polygon(buff, data=row[0])
-                
-                self.gr.add_edge(row[0], row[1], row[2], (row[3],row[4],row[5],row[6],
-                                                        row[7],row[8],row[9],row[10],
-                                                        row[11],row[12],row[13],row[14],
-                                                        row[15],row[16]))
-                if len(out)!=0:
-                    self.last_N_of_object[5]=int(row[0][4:])
+            out6 = cu.fetchall()
             cx.commit()
             cx.close()
-        
-    def save(self):
-        self.close_properties()
+            self.open_new_map((out0[0][1], out0[0][2]), out0[0][3], 1)#инициализация карты
         
         if self.path_to_file[-5:] == '.xlsx':
+            out0 = pd.read_excel(self.path_to_file, sheet_name='Map').values.tolist()
+            out1 = pd.read_excel(self.path_to_file, sheet_name='Sources').values.tolist()
+            out2 = pd.read_excel(self.path_to_file, sheet_name='WaterTowers').values.tolist()
+            out3 = pd.read_excel(self.path_to_file, sheet_name='CounterReservoirs').values.tolist()
+            out4 = pd.read_excel(self.path_to_file, sheet_name='Connectors').values.tolist()
+            out5 = pd.read_excel(self.path_to_file, sheet_name='Consumers').values.tolist()
+            out6 = pd.read_excel(self.path_to_file, sheet_name='Pipes').values.tolist()
+            self.open_new_map((out0[0][0], out0[0][1]), out0[0][2], 1)#инициализация карты
+ 
+        for row in out1:#информация об источника
+            self.map_widget.set_marker(row[1], row[2], text = "ИСТ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
+                                                    " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
+                                                    icon="icons/source.png", data = row[0])
+            self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
+        if len(out1)!=0:
+            self.last_N_of_object[0]=int(row[0][6:])
+        for row in out2:#информация о водонапорных башнях
+            self.map_widget.set_marker(row[1], row[2], text = "ВНБ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
+                                                    " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
+                                                    icon="icons/tower.png", data = row[0])
+            self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6], row[7]))
+        if len(out2)!=0:    
+            self.last_N_of_object[1]=int(row[0][10:])
+        for row in out3:#информация о контррезервуарах
+            self.map_widget.set_marker(row[1], row[2], text = "КР " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
+                                                    " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
+                                                    icon="icons/reservoir.png", data = row[0])
+            self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
+        if len(out3)!=0:
+            self.last_N_of_object[2]=int(row[0][16:])
+        for row in out4:#информация об узлах
+            self.map_widget.set_marker(row[1], row[2], text = "РЗВ " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
+                                                    " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
+                                                    icon="icons/connector.png", data = row[0])
+            self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
+        if len(out4)!=0:
+            self.last_N_of_object[3]=int(row[0][9:])
+        for row in out5:#информация о потребителях
+            self.map_widget.set_marker(row[1], row[2], text = "ПТР " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).street) + 
+                                                    " " + str(TKmv.convert_coordinates_to_address(row[1], row[2]).housenumber),
+                                                    icon="icons/consumer.png", data = row[0])
+            self.gr.add_vertex(row[0], row[1], row[2], (row[3], row[4], row[5], row[6]))
+        if len(out5)!=0:
+            self.last_N_of_object[4]=int(row[0][8:])
+        for row in out6:#информация об участках
+            point1 = self.gr.get_vertex(row[1])
+            point2 = self.gr.get_vertex(row[2])
+            #получаем координаты концов участка
+            buff = [(point1[1], point1[2]), (point2[1], point2[2])]
+            self.map_widget.set_polygon(buff, data=row[0])
+            
+            self.gr.add_edge(row[0], row[1], row[2], (row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],
+                                                      row[11],row[12],row[13],row[14], row[15],row[16]))
+        if len(out6)!=0:
+            self.last_N_of_object[5]=int(row[0][4:])
+
+    def save(self):
+        self.close_properties()
+        pos = self.map_widget.convert_canvas_coords_to_decimal_coords(self.map_widget.width / 2, self.map_widget.height / 2)
+
+        if self.path_to_file[-5:] == '.xlsx':
+            df0 = pd.DataFrame({item:[] for item in ['Широта', 'Долгота', 'Приближение']})
+            df0.loc[ len(df0.index )] = [pos[0], pos[1], self.map_widget.zoom]  
+
             self.clear_xlsx(self.path_to_file)
             df1 = self.make_dataframe('Source')
             df2 = self.make_dataframe('WaterTower')
@@ -515,22 +519,23 @@ class App:
             df5 = self.make_dataframe('Consumer')
             df6 = self.make_dataframe('Pipe')
             
-            with pd.ExcelWriter(self.path_to_file) as writer:
-                df1.to_excel(writer,self.path_to_file, sheet_name='Sources')
-                df2.to_excel(writer, self.path_to_file, sheet_name='WaterTowers')
-                df3.to_excel(writer, self.path_to_file, sheet_name='CounterReservoirs')
-                df4.to_excel(writer, self.path_to_file, sheet_name='Connectors')
-                df5.to_excel(writer, self.path_to_file, sheet_name='Consumers')
-                df6.to_excel(writer, self.path_to_file, sheet_name='Pipes')
+            writer = pd.ExcelWriter(self.path_to_file) 
+            df0.to_excel(writer, 'Map', index=False)
+            df1.to_excel(writer, 'Sources', index=False)
+            df2.to_excel(writer, 'WaterTowers', index=False)
+            df3.to_excel(writer, 'CounterReservoirs', index=False)
+            df4.to_excel(writer, 'Connectors', index=False)
+            df5.to_excel(writer, 'Consumers', index=False)
+            df6.to_excel(writer, 'Pipes', index=False)
             writer.save()
-        if self.path_to_file[-3:] == '.db':
+
+        elif self.path_to_file[-3:] == '.db':
             try:
                 self.clear_db(self.path_to_file)
             except:
                 pass
             cx = sqlite3.connect(self.path_to_file)
             cu = cx.cursor()
-            pos = self.map_widget.convert_canvas_coords_to_decimal_coords(self.map_widget.width / 2, self.map_widget.height / 2)
             
             cu.execute("INSERT OR REPLACE INTO map (pos1, pos2, zoom) VALUES (?, ?, ?);", (pos[0], pos[1], self.map_widget.zoom))
 
