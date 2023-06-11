@@ -1,13 +1,12 @@
-from tkinter import *
-from tkinter import ttk
-from tkinter import filedialog
+#from tkinter import *
+from tkinter import ttk, Tk, END, VERTICAL, BOTH, Menu, filedialog
 import TKmv
 import sqlite3
-import norm_graph as NG
+import NormGraph as NG
+import calculations
 import math
 import pandas as pd
 import openpyxl
-import xlsxwriter
 
 class App:
 
@@ -197,8 +196,6 @@ class App:
             if not getsecondpoint:
                 print("Вторая точка не найдена")
 
-            print("Edges (", len(self.gr.get_all_edges()), ":")
-            print(self.gr.get_all_edges())
 
     def delete_marker(self, coords):
         buff = []
@@ -219,11 +216,18 @@ class App:
 
     def delete_line(self, coords):
         for poly in self.map_widget.canvas_polygon_list:
-            a = poly.get_canvas_pos(poly.position_list[0], self.root.winfo_width()*0.7, self.root.winfo_height())
-            b = poly.get_canvas_pos(poly.position_list[1], self.root.winfo_width()*0.7, self.root.winfo_height())
-            c = poly.get_canvas_pos(coords, self.root.winfo_width()*0.7, self.root.winfo_height())
+            a = poly.get_canvas_pos(poly.position_list[0], 
+                                    self.root.winfo_width()*0.7, 
+                                    self.root.winfo_height())
+            b = poly.get_canvas_pos(poly.position_list[1], 
+                                    self.root.winfo_width()*0.7, 
+                                    self.root.winfo_height())
+            c = poly.get_canvas_pos(coords, 
+                                    self.root.winfo_width()*0.7, 
+                                    self.root.winfo_height())
             if abs(math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2) - 
-                   (math.sqrt((a[0] - c[0])**2 + (a[1] - c[1])**2) + math.sqrt((b[0] - c[0])**2 + (b[1] - c[1])**2))) < 0.4:
+                   (math.sqrt((a[0] - c[0])**2 + (a[1] - c[1])**2) 
+                    + math.sqrt((b[0] - c[0])**2 + (b[1] - c[1])**2))) < 0.4:
                    self.gr.remove_edge(poly.data)
                    self.map_widget.delete(poly)
 
@@ -369,7 +373,8 @@ class App:
         self.last_N_of_object = [0, 0, 0, 0, 0, 0]
         self.has_valve.current(0)
         self.material.current(0)
-        self.map_widget = TKmv.TkinterMapView(self.root, width=self.root.winfo_width()*0.7, height=self.root.winfo_height(), corner_radius=0)
+        self.map_widget = TKmv.TkinterMapView(self.root, width=self.root.winfo_width()*0.7,
+                                               height=self.root.winfo_height(), corner_radius=0)
         self.map_widget.set_position(pos[0], pos[1])
         self.map_widget.set_zoom(zoom)
         self.map_widget.grid(row=0, column=0)
@@ -415,7 +420,6 @@ class App:
                                 command=self.properties_line,
                                 pass_coords=False 
                                 )
-
         
         self.map_widget.save_state_to_file
     
@@ -630,11 +634,48 @@ class App:
         #self.tree.bind("<>", self.print_selection)
         tree.pack(fill=BOTH, expand=True)
 
+    def make_commute_task(self):
+        def on_select():
+            if not tree.selection():
+                return
+            selected_item = tree.selection()[0]
+            values = tree.item(selected_item, option="values")
+            return values[0]
+        
+        def calculate():
+            result.delete(0,END)
+            result.insert(0,calculations.commute_task(self.gr, on_select()))
+        
+        window = Tk()
+        window.title("Коммуникативная задача")
+        window.geometry("700x500")
+        props_list = ['Название','Широта','Долгота']
+        table_name = ttk.Label(window,text='Список вершин')
+        msg = ttk.Label(window,text='Выберите вершину для отключения')
+        res_text = ttk.Label(window,text='Результат: ')
+        result = ttk.Entry(window,width=100)
+        start = ttk.Button(window,text='Расчитать', command= calculate)
+        columns = ['#'+ str(i+1) for i in range (3)]
+        tree = ttk.Treeview(window, show="headings", columns=columns)
+        for i in range (len(columns)):
+            tree.heading(columns[i], text= props_list[i])
+            tree.column(columns[i], width=int(630/len(columns)))
 
-    def load_xlsx(self):
-        pass
-    def save_xlsx(self):
-        pass
+        ysb = ttk.Scrollbar(window, orient= VERTICAL, command=tree.yview)
+        tree.configure(yscroll=ysb.set)
+
+        for item in self.gr.get_all_vertexes():
+            tree.insert("", END, values=(item[0],item[1],item[2]))
+        
+        table_name.place(x=320,y=10)
+        tree.place(x=30,y=30)
+        msg.place(x=285, y=280)
+        res_text.place(x=15,y=380)
+        result.place(x=80,y=380)
+        start.place(x=330,y=410)
+
+
+
     def __init__(self):
         #source, watertower, counterreservoir, consumer, connector, pipe
         self.last_N_of_object = [0, 0, 0, 0, 0, 0]
@@ -658,10 +699,12 @@ class App:
                                 'Условно допустимое давление, м']
         #граф-----------------------------------
         self.gr = NG.Graph()
+        #объект Tkinter--------------
         self.firstpoint = None
         self.secondpoint = None
         self.root = Tk()
         self.root.geometry('1200x600')
+        self.root.title("WaterSupply")
         #self.root.state('zoomed')
         #вывод текста справа
         self.type = ttk.Label()
@@ -683,7 +726,7 @@ class App:
      
         #работа с файлами
         self.filemenu = Menu(self.mainmenu, tearoff=0)
-        self.filemenu.add_command(label="Создать новую схему(с картой)",
+        self.filemenu.add_command(label="Создать новую схему",
                                   command=self.open_new_map)
         self.filemenu.add_command(label="Открыть...",
                                   command=self.load)
@@ -693,19 +736,16 @@ class App:
                                   command=self.save_as)
         self.filemenu.add_command(label="Выход",
                                   command=self.root.destroy)
-        #работа с объектами
-        self.addObjectmenu = Menu(self.mainmenu, tearoff=0)
-        self.addObjectmenu.add_command(label="Добавить объект")#, command=self.addMarker)
-        self.addObjectmenu.add_command(label="Проложить ТРУБУ")
         #расчеты
         self.calculationsmenu = Menu(self.mainmenu, tearoff=0)
-        self.calculationsmenu.add_command(label="Коммутационная задача")
+        self.calculationsmenu.add_command(label="Коммутационная задача",
+                                          command=self.make_commute_task)
         self.calculationsmenu.add_command(label="Поверочный расчет")
         #вывод сводных таблиц по типам объектов
         self.tablesmenu = Menu(self.mainmenu, tearoff=0)
         self.tablesmenu.add_command(label="По источникам", 
                                     command=lambda: self.show_group_of_objects('Source'))
-        self.tablesmenu.add_command(label="По водонапоным башням", 
+        self.tablesmenu.add_command(label="По водонапорным башням", 
                                     command=lambda: self.show_group_of_objects('WaterTower'))
         self.tablesmenu.add_command(label="По контррезервуарам", 
                                     command=lambda: self.show_group_of_objects('CounterReservoir'))
@@ -724,10 +764,8 @@ class App:
         self.mainmenu.add_cascade(label="Файл", menu=self.filemenu)
         self.mainmenu.add_cascade(label="Расчеты", menu=self.calculationsmenu)
         self.mainmenu.add_cascade(label="Сводные таблицы", menu=self.tablesmenu)
-        self.mainmenu.add_cascade(label="Добавить объект", menu=self.addObjectmenu)
         self.mainmenu.add_cascade(label="Справка", menu=self.helpmenu)
         
-        #self.root.bind("<Configure>", self.onChange)
         self.root.mainloop()
 
 

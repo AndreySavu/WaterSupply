@@ -22,7 +22,6 @@ class Vertex(object):
 
     def set_value(self, value):
         self.__value = value
-
     
 class Edge(object):
 
@@ -142,12 +141,24 @@ class Graph(object):
                         self.edges[name].get_value()))
         return out
     
+    def get_outgoing_edges(self, vertex):
+        out = []
+        for name in self.edges:
+            if vertex == self.edges[name].get_source() or vertex == self.edges[name].get_destination():
+                out.append((name, self.edges[name].get_source(), 
+                            self.edges[name].get_destination(), 
+                            self.edges[name].get_value()))
+        return out
+    
+    def get_edge_by_vertexes(self, vert1, vert2):
+        for name in self.edges:
+            if ((vert1 == self.edges[name].get_source() and vert2 == self.edges[name].get_destination())
+            or (vert2 == self.edges[name].get_source() and vert1 == self.edges[name].get_destination())):
+                return ((name, self.edges[name].get_source(), 
+                                self.edges[name].get_destination(), 
+                                self.edges[name].get_value()))
+    
     def clear_graph(self):
         self.vertexes.clear()
         self.edges.clear()
-gr = Graph()
-gr.add_vertex('lol1',33,44, ('','','',''))
 
-gr.update_vertex('lol1', 35, 30, ('1','2','3','4'))
-
-print(gr.get_all_vertexes())
