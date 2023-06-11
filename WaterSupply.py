@@ -138,22 +138,22 @@ class App:
     def add_marker_consumer(self, coords):
         adress = str(TKmv.convert_coordinates_to_address(coords[0], coords[1]).street) + \
             " " + str(TKmv.convert_coordinates_to_address(coords[0], coords[1]).housenumber)
-        dat = "Consumer" + str(self.last_N_of_object[3] + 1)
+        dat = "Consumer" + str(self.last_N_of_object[4] + 1)
         self.map_widget.set_marker(coords[0], coords[1],
                                     text = "ПТР " + adress,
                                     icon = "icons/consumer.png",
                                     data = dat)
         self.gr.add_vertex(dat, coords[0], coords[1], (0, 0, 0, 0))
-        self.last_N_of_object[3] += 1
+        self.last_N_of_object[4] += 1
 
     def add_marker_connector(self, coords):
-        dat = "Connector" + str(self.last_N_of_object[4] + 1)
+        dat = "Connector" + str(self.last_N_of_object[3] + 1)
         self.map_widget.set_marker(coords[0], coords[1],
                                     text = "РЗВ " + str(round(coords[0],4)) + "; " + str(round(coords[1],4)),
                                     icon = "icons/connector.png",
                                     data = dat)
         self.gr.add_vertex(dat, coords[0], coords[1], (0, 0, 0, 0))
-        self.last_N_of_object[4] += 1
+        self.last_N_of_object[3] += 1
 
     def add_line(self, coords):
         getfirstpoint = False
@@ -506,6 +506,7 @@ class App:
                                                       row[11],row[12],row[13],row[14], row[15],row[16]))
         if len(out6)!=0:
             self.last_N_of_object[5]=int(row[0][4:])
+        print(self.last_N_of_object)    
 
     def save(self):
         self.close_properties()
@@ -738,7 +739,7 @@ class App:
                                   command=self.root.destroy)
         #расчеты
         self.calculationsmenu = Menu(self.mainmenu, tearoff=0)
-        self.calculationsmenu.add_command(label="Коммутационная задача",
+        self.calculationsmenu.add_command(label="Коммуникативная задача",
                                           command=self.make_commute_task)
         self.calculationsmenu.add_command(label="Поверочный расчет")
         #вывод сводных таблиц по типам объектов
